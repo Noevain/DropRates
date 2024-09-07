@@ -61,7 +61,7 @@ public sealed class Plugin : IDalamudPlugin
         if (message != null && message.Payloads != null)
         {
             string textValue = message.TextValue;
-            if (textValue == dataManager.GetExcelSheet<LogMessage>()!.First(x => x.RowId == 5183).Text)//has been added to the loot list
+            if (textValue.Contains("has been added to the loot list"))//has been added to the loot list
             {
                 foreach (Payload payload in message.Payloads)
                 {
