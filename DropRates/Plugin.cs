@@ -5,7 +5,12 @@ using System.IO;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using DropRates.Windows;
-
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Lumina;
+using Lumina.Excel.GeneratedSheets;
+using System.Linq;
 namespace DropRates;
 
 public sealed class Plugin : IDalamudPlugin
@@ -14,11 +19,14 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
 
+    [PluginService] internal static IPluginLog Logger { get; private set; } = null!;
+    [PluginService] internal static IChatGui chat {  get; private set; } = null!;
+    [PluginService] internal static IDataManager dataManager { get; private set; } = null!;
     private const string CommandName = "/pmycommand";
 
     public Configuration Configuration { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("SamplePlugin");
+    public readonly WindowSystem WindowSystem = new("DropRates");
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
 
@@ -35,11 +43,6 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
 
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
-        {
-            HelpMessage = "A useful message to display in /xlhelp"
-        });
-
         PluginInterface.UiBuilder.Draw += DrawUI;
 
         // This adds a button to the plugin installer entry of this plugin which allows
@@ -48,6 +51,35 @@ public sealed class Plugin : IDalamudPlugin
 
         // Adds another button that is doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
+
+        chat.CheckMessageHandled += Chat_CheckMessageHandled;
+    }
+
+    private void Chat_CheckMessageHandled(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    {
+        if (type != XivChatType.SystemMessage) return;
+        if (message != null && message.Payloads != null)
+        {
+            string textValue = message.TextValue;
+            if (textValue == dataManager.GetExcelSheet<LogMessage>()!.First(x => x.RowId == 5183).Text)//has been added to the loot list
+            {
+                foreach (Payload payload in message.Payloads)
+                {
+                    if(payload.Type == PayloadType.Item)
+                    {
+                        ItemPayload item = (ItemPayload)payload;
+                        Logger.Debug(item.ItemId.ToString());
+                    }
+                }
+            }
+        }
+
+        /*if (message.Payloads.Count > 0 && message.Payloads[0].Type == PayloadType.Item  ) {
+            ItemPayload item = (ItemPayload)message.Payloads[0];
+        }
+        
+        throw new System.NotImplementedException();
+        */
     }
 
     public void Dispose()
@@ -56,7 +88,7 @@ public sealed class Plugin : IDalamudPlugin
 
         ConfigWindow.Dispose();
         MainWindow.Dispose();
-
+        chat.CheckMessageHandled -= Chat_CheckMessageHandled;
         CommandManager.RemoveHandler(CommandName);
     }
 
