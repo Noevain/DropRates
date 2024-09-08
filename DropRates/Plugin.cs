@@ -11,6 +11,7 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Lumina;
 using Lumina.Excel.GeneratedSheets;
 using System.Linq;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 namespace DropRates;
 
 public sealed class Plugin : IDalamudPlugin
@@ -42,7 +43,6 @@ public sealed class Plugin : IDalamudPlugin
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
-
         PluginInterface.UiBuilder.Draw += DrawUI;
 
         // This adds a button to the plugin installer entry of this plugin which allows
@@ -67,6 +67,7 @@ public sealed class Plugin : IDalamudPlugin
                 {
                     if(payload.Type == PayloadType.Item)
                     {
+                        Logger.Debug(Framework.GetServerTime().ToString());
                         ItemPayload item = (ItemPayload)payload;
                         Logger.Debug(item.ItemId.ToString());
                     }
